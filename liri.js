@@ -1,22 +1,42 @@
 // add code to read and set any environment variables with the dotenv package:
 require("dotenv").config();
-// As always, we grab the fs package to handle read/write
+var request = require("request");
 const fs = require("fs");
 
-const keys = require("./keys");
-
-// Here we incorporate the "request" npm package
-var request = require("request");
-// We then run the request module on a URL with a JSON
-request("http://www.omdbapi.com/?t=remember+the+titans&y=&plot=short&apikey=trilogy", function(error, response, body) {
-// If there were no errors and the response code was 200 (i.e. the request was successful)...
-if (!error && response.statusCode === 200) {
-
-// Then we print out the imdbRating
-console.log("The movie's rating is: " + JSON.parse(body).imdbRating);
+// const keys = require("./keys");
+// var spotify = new Spotify(keys.spotify);
+// var client = new Twitter(keys.twitter);
+if (process.argv[2]=== "movie-this") {
+    omdbapi();
 }
-});
 
+//OMDB section
+function omdbapi() {
+    
+    var nodeName = process.argv;
+    var movieName = "";
+    if (!nodeName[3]) {
+        console.log(nodeName[3])
+        movieName = "Mr.Nobody"
+    } 
+    for (var i = 3; i < nodeName.length; i++) {
+        if (i > 3 && i < nodeName.length) {
+            movieName += "+" + nodeName[i];
+        }
+        else {
+            movieName +=nodeName[i];
+        }
+    }
 
-var spotify = new Spotify(keys.spotify);
-var client = new Twitter(keys.twitter);
+    var queryUrl = "http://www.omdbapi.com/?t=" + movieName + "&y=&plot=short&apikey=trilogy"
+    console.log(queryUrl);
+    request(queryUrl, function (error, response, body) {
+        // If there were no errors and the response code was 200 (i.e. the request was successful)...
+        if (!error && response.statusCode === 200) {
+
+            // Print results
+            console.log("Title: " + JSON.parse(body).Title + "\nRelease Year: " + JSON.parse(body).Year + "\nIMDb Rating: " + JSON.parse(body).imdbRating + "\nRotten Tomatoes Rating: " + JSON.parse(body).Ratings[1].Value + "\nProduced in: " + JSON.parse(body).Country + "\nLanguage: " + JSON.parse(body).Language + "\nPlot: " + JSON.parse(body).Plot + "\nStarring: " + JSON.parse(body).Actors);
+        }
+    });
+}
+
