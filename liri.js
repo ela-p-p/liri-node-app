@@ -8,24 +8,47 @@ const spotifyQuery = new Spotify(keys.spotify);
 
 const request = require("request");
 const fs = require("fs");
+var choice = process.argv[2]
+var nodeInput = process.argv;
+var input = "";
 
 
-if (process.argv[2] === "movie-this") {
-    omdbApi();
+//trying to make things DRY by not repeating the process.argv ++
+function inputProcess(input) {
+    for (var i = 3; i < nodeInput.length; i++) {
+        if (i > 3 && i < nodeInput.length) {
+            input += "+" + nodeInput[i];
+        }
+        else {
+            input += nodeInput[i];
+        }
+    }
+    return input
 }
-else if (process.argv[2] === "my-tweets") {
-    twitterNPM();
+
+function choose(choice, fileInput) {
+    if (choice === "movie-this") {
+        omdbApi(fileInput);
+    }
+    else if (choice === "my-tweets") {
+        twitterNPM();
+    }
+    else if (choice === "spotify-this-song") {
+        spotifyNPM(fileInput);
+    }
+    else if (choice === "do-what-it-says") {
+        readRandom();
+    }
+    else if (spotifyNPM(fileInput) || omdbApi(fileInput)){
+        addLog();
+    }
 }
-else if (process.argv[2] === "spotify-this-song") {
-    spotifyNPM();
-}
-else if (process.argv[2] === "do-what-it-says") {
-    readRandom();
-}
+choose(choice)
+
 
 //Twitter section
 function twitterNPM() {
-    var params = { screen_name: 'Elizabe35444694', count: 20 };
+    var params = { screen_name: 'Elizabe35444694' };
     client.get('statuses/user_timeline', params, function (error, tweets, response) {
         if (!error) {
             var tweetArray = tweets.map(function (tweet) {
@@ -35,59 +58,84 @@ function twitterNPM() {
         }
     });
 }
+
 //OMDB section
-function omdbApi() {
-
-    var nodeName = process.argv;
-    var movieName = "";
-    if (!nodeName[3]) {
-        console.log(nodeName[3])
-        movieName = "Mr.Nobody"
+function omdbApi(fileInput) {
+    if (fileInput) {
+        input = fileInput
+    } else if (!nodeInput[3]) {
+        input = "Mr.Nobody"
     }
-    for (var i = 3; i < nodeName.length; i++) {
-        if (i > 3 && i < nodeName.length) {
-            movieName += "+" + nodeName[i];
-        }
-        else {
-            movieName += nodeName[i];
-        }
-    }
+    input = inputProcess(input)
 
-    var queryUrl = "http://www.omdbapi.com/?t=" + movieName + "&y=&plot=short&apikey=trilogy"
-    console.log(queryUrl);
+    var queryUrl = "http://www.omdbapi.com/?t=" + input + "&y=&plot=short&apikey=trilogy"
     request(queryUrl, function (error, response, body) {
-        // If there were no errors and the response code was 200 (i.e. the request was successful)...
         if (!error && response.statusCode === 200) {
+            var results = "\n-------------------\nTitle: " + JSON.parse(body).Title + "\nRelease Year: " + JSON.parse(body).Year + "\nIMDb Rating: " + JSON.parse(body).imdbRating + "\nRotten Tomatoes Rating: " + JSON.parse(body).Ratings[1].Value + "\nProduced in: " + JSON.parse(body).Country + "\nLanguage: " + JSON.parse(body).Language + "\nPlot: " + JSON.parse(body).Plot + "\nStarring: " + JSON.parse(body).Actors;;
 
-            // Print results
-            console.log("Title: " + JSON.parse(body).Title + "\nRelease Year: " + JSON.parse(body).Year + "\nIMDb Rating: " + JSON.parse(body).imdbRating + "\nRotten Tomatoes Rating: " + JSON.parse(body).Ratings[1].Value + "\nProduced in: " + JSON.parse(body).Country + "\nLanguage: " + JSON.parse(body).Language + "\nPlot: " + JSON.parse(body).Plot + "\nStarring: " + JSON.parse(body).Actors);
+            console.log(results);
+            addLog(results);
+        } else {
+            console.log("Error" + error);
         }
     });
 }
-function spotifyNPM() {
-    var nodeMusic = process.argv;
-    var songName = "";
-    if (!nodeMusic[3]) {
-        songName = "The Sign, Ace of Base"
+
+//spotify section
+function spotifyNPM(fileInput) {
+    if(fileInput) {
+        input = fileInput 
     }
-    for (var i = 3; i < nodeMusic.length; i++) {
-        if (i > 3 && i < nodeMusic.length) {
-            songName += "+" + nodeMusic[i];
-        }
-        else {
-            songName += nodeMusic[i];
-        }
+    else if (!nodeInput[3]) {
+        input = "The Sign, Ace of Base"
     }
-    spotifyQuery.search({ type: 'track', query: songName }, function (err, data) {
+    input = inputProcess(input)
+
+    spotifyQuery.search({ type: 'track', query: input }, function (err, data) {
         if (err) {
             console.log('Error occurred: ' + err);
             return;
         }
         else {
             var dataResult = data.tracks.items[0];
-
-            console.log("Artist: " + dataResult.artists[0].name + "\nSong Name: " + dataResult.name + "\nSpotify Link: " + dataResult.preview_url + "\nAlbum: " + dataResult.album.name);
+            var results = "\n--------------\nArtist: " + dataResult.artists[0].name + "\nSong Name: " + dataResult.name + "\nSpotify Link: " + dataResult.preview_url + "\nAlbum: " + dataResult.album.name
+            console.log(results)
+            addLog(results)
+            
         };
     });
-
 }
+
+
+//read from file random.txt
+function readRandom() {
+    fs.readFile("random.txt", "utf8", function (error, data) {
+        if (error) {
+            return console.log(error)
+        } else {
+            var dataArr = data.split(",");
+            //first element
+            var dataString = dataArr.shift();
+            //second element
+            var dataNode = dataArr.pop();          
+            //run choose function
+            choose(dataString, dataNode)
+        };
+    }); 
+};
+
+//output terminal window to log.txt
+function addLog(text) {
+
+    fs.appendFile("log.txt", text, function (err) {
+        if (err) {
+            console.log(err);
+        }
+
+    }); return text
+}
+
+
+
+
+
